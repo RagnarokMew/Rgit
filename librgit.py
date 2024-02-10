@@ -61,42 +61,42 @@ class GitIgnore(object):
 class GitIndexEntry(object):
     def __init__(self, ctime=None, mtime=None, dev=None, ino=None,
                 mode_type=None, mode_perms=None, uid=None, gid=None,
-                fsize=None, sha=None, flag_assume_valid=None, flag_stage=None, name=None)
+                fsize=None, sha=None, flag_assume_valid=None, flag_stage=None, name=None):
 
-    #Last time file's metadata was changed: Pair of timestamp (seconds, nanoseconds)
-    self.ctime = ctime
+        #Last time file's metadata was changed: Pair of timestamp (seconds, nanoseconds)
+        self.ctime = ctime
 
-    #Last time file's data was changed: Pair of timestamp (seconds, nanoseconds)
-    self.mtime = mtime
+        #Last time file's data was changed: Pair of timestamp (seconds, nanoseconds)
+        self.mtime = mtime
 
-    #device Id containing file
-    self.dev = dev
+        #device Id containing file
+        self.dev = dev
 
-    #file inode numnber (number associated to file name unique in the file system)
-    self.ino = ino 
+        #file inode numnber (number associated to file name unique in the file system)
+        self.ino = ino 
 
-    #object type b1000 (regular), b1010 (symLink), b1110 (gitLink)
-    self.mode_type = mode_type
+        #object type b1000 (regular), b1010 (symLink), b1110 (gitLink)
+        self.mode_type = mode_type
 
-    #object permissions (int)
-    self.mode_perms = mode_perms
+        #object permissions (int)
+        self.mode_perms = mode_perms
 
-    #owner id user
-    self.uid = uid
+        #owner id user
+        self.uid = uid
 
-    #owner id group
-    self.gid = gid
+        #owner id group
+        self.gid = gid
 
-    #object size in bytes
-    self.fsize = fsize
+        #object size in bytes
+        self.fsize = fsize
 
-    #object sha
-    self.sha = sha
-    slef.flag_assume_valid = flag_assume_valid
-    self.flag_stage = flag_stage
+        #object sha
+        self.sha = sha
+        self.flag_assume_valid = flag_assume_valid
+        self.flag_stage = flag_stage
 
-    #object name (full path)
-    self.name = name
+        #object name (full path)
+        self.name = name
 
 #begins with DIRC mahic bytes, version number and total number of entries
 class GitIndex(object):
@@ -253,7 +253,7 @@ def repo_dir(repo, *path, mkdir=False):
 
 #makes new repo at path
 def repo_create(path):
-    repo = GitRepository(path, True)
+    repo = RgitRepository(path, True)
 
     if os.path.exists(repo.worktree):
         if not os.path.isdir(repo.worktree):
@@ -296,7 +296,7 @@ def repo_find_root(path=".", required=True):
     path = os.path.realpath(path)
 
     if os.path.isdir(os.path.join(path, ".git")):
-        return GitRepository(path)
+        return RgitRepository(path)
 
     parent = os.path.realpath(os.path.join(path, ".."))
 
@@ -588,7 +588,7 @@ def ref_list(repo, path=None):
     
     return result
 
-def show_ref(repo, refs, with_hash=Tue, prefix=""):
+def show_ref(repo, refs, with_hash=True, prefix=""):
     for key, value in refs.items():
         if type(value) == str:
             print("{0}{1}{2}".format(
@@ -867,12 +867,12 @@ def index_write(repo, index):
             file.write(entry.fsize.to_bytes(4, "big"))
             f.write(int(entry.sha, 16).to_bytes(20, "big"))
 
-            flag-assume_valid = 0x1 << 15 if entry.flag_assume_valid else 0
+            flag_assume_valid = 0x1 << 15 if entry.flag_assume_valid else 0
 
             name_bytes = entry.name.encode("utf8")
             bytes_len = len(name_bytes)
-            if bytes_len >= 0xFFF
-                name_length = 0xFFF:
+            if bytes_len >= 0xFFF:
+                name_length = 0xFFF
             else:
                 name_length = bytes_len
 
@@ -1164,7 +1164,7 @@ def rgit_check_ignore(args):
         if check_ignore(rules, path):
             print(path)
 
-def rgit_status(_)
+def rgit_status(_):
     repo = repo_find_root()
     index = index_read(repo)
 
@@ -1280,11 +1280,11 @@ def rgit_commit(args):
 
 """Parser and subparser for arguments"""
 
-parser = argparse.ArgumentParser(
+argparser = argparse.ArgumentParser(
     description='A git-like version control made by RagnarokMew, a testament to crunch culture and tutorials',
     epilog='I sometimes wonder why did I do this to myself')
 
-argsubparsers = argparse.add_subparsers(title='Commands', dest='command')
+argsubparsers = argparser.add_subparsers(title='Commands', dest='command')
 argsubparsers.required = True
 
 ### this may not work since intellisense says it doesn't exist but python doc says it does
@@ -1326,11 +1326,11 @@ argsp.add_argument("commit",
                     help="Commit to start at.")
 
 argsp = argsubparsers.add_parser("ls-tree", help="Print a tree object.")
-args.add_argument("-r",
+argsp.add_argument("-r",
                     dest = "recursive",
                     action="store_true",
                     help="Recurse into sub-trees")
-args.add_argument("tree",
+argsp.add_argument("tree",
                     help=" A tree object")
 
 argsp = argsubparsers.add_parser("checkout", help="Checkout a commit (inside of a directory)")
