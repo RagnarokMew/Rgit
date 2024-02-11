@@ -27,26 +27,26 @@ class RgitRepository(object):
     '''git repo'''
     worktree = None
     gitdir = None
-    cfg = None
+    conf = None
 
     def __init__(self, path, force=False):
         self.worktree = path
         self.gitdir = os.path.join(path, ".git")
 
         if not (force or os.path.isdir(self.gitdir)):
-            raise Exception("Not a Rgit repository %s" %path)
+            raise Exception("Not a Rgit repository %s" % path)
 
         #Read config file in .git/config
-        self.cfg = configparser.ConfigParser()
+        self.conf = configparser.ConfigParser()
         cf = repo_file(self, "config")
 
         if cf and os.path.exists(cf):
-            self.cfg.read([cf])
+            self.conf.read([cf])
         elif not force:
             raise Exception("Configuration file missing")
 
         if not force:
-            vers = int(self.cfg.get("core", "repositoryformatversion"))
+            vers = int(self.conf.get("core", "repositoryformatversion"))
             if vers != 0:
                 raise Exception("Unsupported repositoryformatversion %s" % vers)
 
@@ -136,8 +136,8 @@ def object_read(repo, sha):
     if not os.path.isfile(path):
         return None
 
-    with open(path, "rb") as file:
-        raw = zlib.decompress(file.read())
+    with open(path, "rb") as f:
+        raw = zlib.decompress(f.read())
 
         #Object type
         x = raw.find(b' ')
@@ -162,14 +162,14 @@ def object_read(repo, sha):
 def object_write(obj, repo=None):
     data = obj.serialize()
     result = obj.format + b' ' + str(len(data)).encode() + b'\x00' + data
-    sha = haslib.sha1(result).hexdigest()
+    sha = hashlib.sha1(result).hexdigest()
 
     if repo:
         path=repo_file(repo, "objects", sha[0:2], sha[2:], mkdir=True)
 
         if not os.path.exists(path):
-            with open(path, 'wb') as file:
-                file.write(zlib.compress.result)
+            with open(path, 'wb') as f:
+                f1.write(zlib.compress(result))
     
     return sha
 
@@ -237,7 +237,7 @@ def repo_file(repo, *path, mkdir=False):
 #repo_path but if mkdir path is absent
 def repo_dir(repo, *path, mkdir=False):
 
-    path = repo_path(*repo, *path)
+    path = repo_path(repo, *path)
 
     if os.path.exists(path):
         if os.path.isdir(path):
@@ -269,21 +269,21 @@ def repo_create(path):
     assert repo_dir(repo, "refs", "heads", mkdir=True)
 
     #.git/description
-    with open(repo_file(repo, "description"), "w") as file:
-        file.write("Unnamed repository; edit this file to name the repository.\n")
+    with open(repo_file(repo, "description"), "w") as f:
+        f.write("Unnamed repository; edit this file to name the repository.\n")
 
     #.git/HEAD
-    with open(repo_file(repo, "HEAD"), "w") as file:
-        file.write("ref: refs/heads/main\n")
+    with open(repo_file(repo, "HEAD"), "w") as f:
+        f.write("ref: refs/heads/master\n")
 
-    with open(repo_file(repo, "config"), "w") as file:
+    with open(repo_file(repo, "config"), "w") as f:
         config = repo_default_config()
-        config.write(file)
+        config.write(f)
 
     return repo
 
 def repo_default_config():
-    result = configparser.ConfigParser()
+    ret = configparser.ConfigParser()
 
     ret.add_section("core")
     ret.set("core", "repositoryformatversion", "0")
@@ -353,7 +353,7 @@ def object_resolve(repo, name):
         prefix = name[0:2]
         path = repo_dir(repo, "objects", prefix, mkdir=False)
         if path:
-            remainder = name[0:2]
+            remainder = name[2:]
             for file in os.listdir(path):
                 if file.startswith(remainder):
                     candidates.append(prefix + file)
@@ -369,7 +369,7 @@ def object_resolve(repo, name):
     return candidates
 
 def cat_file(repo, object, format=None):
-    object = object_read(repo, object_find(repo, object, format=format))
+    obj = object_read(repo, object_find(repo, obj, format=format))
     sys.stdout.buffer.write(obj.serialize())
 
 def object_hash(file, format, repo=None):
@@ -432,10 +432,10 @@ def keyvaluelist_serialize(keyvaluelist):
         if type(value) != list:
             value = [ value ]
         
-        for v in val:
+        for v in value:
             result += key + b' ' + (v.replace(b'\n', b'\n ')) + b'\n'
 
-    ret += b'\n' + keyvaluelist[None] + b'\n'
+    result += b'\n' + keyvaluelist[None] + b'\n'
 
     return result
 
@@ -454,7 +454,7 @@ def log_graphics(repo, sha , seen):
     if "\n" in message:
         message = message[:message.index("\n")]
 
-    print(" c_{0} [labe;=\"{1}: {2}\]".format(sha, sha[0:7], message))
+    print(" c_{0} [label=\"{1}: {2}\"]".format(sha, sha[0:7], message))
     assert commit.format==b'commit'
 
     #initial commit check
@@ -469,7 +469,7 @@ def log_graphics(repo, sha , seen):
     for parent in parents:
         parent = parent.decode("ascii")
         print(" c_{0} -> c_{1};".format(sha, parent))
-        log_graphics(repo, p, seen)
+        log_graphics(repo, parent, seen)
 
 def tree_parse_one(raw, start=0):
 
@@ -592,7 +592,7 @@ def show_ref(repo, refs, with_hash=True, prefix=""):
     for key, value in refs.items():
         if type(value) == str:
             print("{0}{1}{2}".format(
-                v + " " if with_hash else "",
+                value + " " if with_hash else "",
                 prefix + '/' if prefix else "",
                 key))
         else:
@@ -625,13 +625,14 @@ def index_read(repo):
     if not os.path.exists(index_file):
         return GitIndex()
 
-    with open(index_file, 'rb') as file:
-        raw = file.read()
+    with open(index_file, 'rb') as f:
+        raw = f.read()
 
     header = raw[:12]
     signature = header[:4]
     assert signature == b"DIRC" # == DirCache
-    version = 2 ### ONLY VERSION 2 IS IMPLEMENTED
+    version = int.from_bytes(header[4:8], "big")
+    assert version == 2 ### ONLY VERSION 2 IS IMPLEMENTED
     count = int.from_bytes(header[8:12], "big")
 
     entries = list()
@@ -642,7 +643,7 @@ def index_read(repo):
         ctime_s = int.from_bytes(content[idx: idx+4], "big")
         ctime_ns = int.from_bytes(content[idx+4: idx+8], "big")
 
-        mtime_s = int,from_bytes(content[idx+8: idx+12], "big")
+        mtime_s = int.from_bytes(content[idx+8: idx+12], "big")
         mtime_ns = int.from_bytes(content[idx+12: idx+16], "big")
 
         dev = int.from_bytes(content[idx+16: idx+20], "big")
@@ -656,10 +657,10 @@ def index_read(repo):
         mode = int.from_bytes(content[idx+26: idx+28], "big")
         mode_type = mode >> 12
         assert mode_type in [0b1000, 0b1010, 0b1110]
-        mode_perms = mopde & 0b0000000111111111
+        mode_perms = mode & 0b0000000111111111
 
         uid = int.from_bytes(content[idx+28: idx+32], "big")
-        gif = int.from_bytes(content[idx+32: idx+36], "big")
+        gid = int.from_bytes(content[idx+32: idx+36], "big")
 
         fsize = int.from_bytes(content[idx+36: idx+40], "big")
 
@@ -688,10 +689,10 @@ def index_read(repo):
             raw_name = content[idx:idx+name_length]
             idx += name_length + 1
         else:
-            print("Notice: Name is 0x{:X} bytes long.".format(name_lenght))
+            print("Notice: Name is 0x{:X} bytes long.".format(name_length))
 
             # There may be errors when size is larger than 0xFFF
-            null_idx = content.find('b\x00', ifx + 0xFFF)
+            null_idx = content.find('b\x00', idx + 0xFFF)
             raw_name = content[idx: null_idx]
             idx = null_idx + 1
 
@@ -858,14 +859,14 @@ def index_write(repo, index):
             file.write(entry.ino.to_bytes(4, "big"))
 
             #Mode
-            mode = (entry.mode_type << 12) | e.mode_perms
-            f.write(mode.to_bytes(4, "big"))
+            mode = (entry.mode_type << 12) | entry.mode_perms
+            file.write(mode.to_bytes(4, "big"))
 
-            f.write(entry.uid.to_bytes(4, "big"))
-            f.write(entry.gid.to_bytes(4, "big"))
+            file.write(entry.uid.to_bytes(4, "big"))
+            file.write(entry.gid.to_bytes(4, "big"))
 
             file.write(entry.fsize.to_bytes(4, "big"))
-            f.write(int(entry.sha, 16).to_bytes(20, "big"))
+            file.write(int(entry.sha, 16).to_bytes(20, "big"))
 
             flag_assume_valid = 0x1 << 15 if entry.flag_assume_valid else 0
 
@@ -877,6 +878,8 @@ def index_write(repo, index):
                 name_length = bytes_len
 
             # Merging the three parts into one (2 flags + length)
+            file.write((flag_assume_valid | entry.flag_stage | name_length).to_bytes(2, "big"))
+
             file.write(name_bytes)
             file.write((0).to_bytes(1, "big"))
 
@@ -948,8 +951,8 @@ def add(repo, paths, delete=True, skip_missing=False):
         index = index_read(repo)
 
         for(abspath, relpath) in clean_paths:
-            with open(abspath, "rb") as fs:
-                sha = object_has(fd, b"blob", repo)
+            with open(abspath, "rb") as fd:
+                sha = object_hash(fd, b"blob", repo)
 
             stat = os.stat(abspath)
 
@@ -1126,7 +1129,7 @@ def rgit_rev_parse(args):
     print(object_find(repo, args.name, format, follow=True))
 
 def rgit_ls_files(args):
-    repo = repo_find()
+    repo = repo_find_root()
     index = index_read(repo)
     if args.verbose:
         print("Index file format v{}, containing {} entries.".format(index.version, len(intex.entries)))
@@ -1210,7 +1213,7 @@ def rgit_status_index_worktree(repo, index):
         if root == repo.gitdir or root.startswith(gitdir_prefix):
             continue
         for file in files:
-            full_path = os.path.join(root, f)
+            full_path = os.path.join(root, file)
             rel_path = os.path.relpath(full_path, repo.worktree)
             all_files.append(rel_path)
 
