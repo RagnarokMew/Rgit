@@ -19,7 +19,7 @@ math -> math functions
 from datetime import datetime
 from fnmatch import fnmatch
 import os, sys, argparse, collections, configparser, grp, pwd, hashlib, zlib, re
-import math
+from math import ceil
 
 
 """RGIT INTERNALS"""
@@ -169,7 +169,7 @@ def object_write(obj, repo=None):
 
         if not os.path.exists(path):
             with open(path, 'wb') as f:
-                f1.write(zlib.compress(result))
+                f.write(zlib.compress(result))
     
     return sha
 
@@ -709,12 +709,12 @@ def index_read(repo):
                                     ino=ino,
                                     mode_type=mode_type,
                                     mode_perms=mode_perms,
-                                    uide=uid,
+                                    uid=uid,
                                     gid=gid,
                                     fsize=fsize,
                                     sha=sha,
                                     flag_assume_valid = flag_assume_valid,
-                                    flag_stage=falg_stage,
+                                    flag_stage=flag_stage,
                                     name=name))
 
     return GitIndex(version = version, entries = entries)
@@ -972,8 +972,8 @@ def add(repo, paths, delete=True, skip_missing=False):
 
 def gitconfig_read():
     xdg_config_home = os.environ["XDG_CONFIG_HOME"] if "XDG_CONFIG_HOME" in os.environ else "~/.config"
-    fondigfiles = [
-        os.path.expanduser(os.path.join(xdg-config_home, "git/config")),
+    configfiles = [
+        os.path.expanduser(os.path.join(xdg_config_home, "git/config")),
         os.path.expanduser("~/.gitconfig")
     ]
 
@@ -1021,7 +1021,7 @@ def tree_from_index(repo, index):
             else: #Tree :+ sotred as a pair (basename, SHA)
                 leaf = GitTreeLeaf(mode = b"0400000", path=entry[0], sha=entry[1])
 
-            tree.itmes.append(leaf)
+            tree.items.append(leaf)
 
         #Write the new tree object to the store
         sha = object_write(tree, repo)
@@ -1268,7 +1268,7 @@ def rgit_commit(args):
     commit = commit_create(repo,
                         tree,
                         object_find(repo, "HEAD"),
-                        gitconfig_get(gitconfig_read()),
+                        gitconfig_user_get(gitconfig_read()),
                         datetime.now(),
                         args.message)
 
