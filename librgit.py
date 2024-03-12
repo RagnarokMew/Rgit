@@ -369,8 +369,8 @@ def object_resolve(repo, name):
     return candidates
 
 def cat_file(repo, object, format=None):
-    obj = object_read(repo, object_find(repo, obj, format=format))
-    sys.stdout.buffer.write(obj.serialize())
+    object = object_read(repo, object_find(repo, object, format=format))
+    sys.stdout.buffer.write(object.serialize())
 
 def object_hash(file, format, repo=None):
     data = file.read()
