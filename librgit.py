@@ -145,7 +145,7 @@ def object_read(repo, sha):
 
         #Read and validate object size
         y = raw.find(b'\x00', x)
-        size = int(raw[x:y]).decode("ascii")
+        size = int(raw[x:y].decode("ascii"))
         if size != len(raw)-y-1:
             raise Exception("Malformed object {0}: bad length".format(sha))
 
