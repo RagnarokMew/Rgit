@@ -800,7 +800,7 @@ def check_ignore_absolute(rules, path):
     return False
 
 def check_ignore(rules, path):
-    if os.path.isab(path):
+    if os.path.isabs(path):
         raise Exception("This function requires path to be relative to the repository's root")
 
     result = check_ignore_scoped(rules.scoped, path)
