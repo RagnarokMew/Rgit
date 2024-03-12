@@ -985,7 +985,7 @@ def gitconfig_user_get(config):
     if "user" in config:
         if "name" in config["user"] and "email" in config["user"]:
             return "{} <{}>".format(config["user"]["name"], config["user"]["email"])
-    return None
+    return "Unknown User"
 
 def tree_from_index(repo, index):
     contents = dict()
