@@ -439,7 +439,7 @@ def keyvaluelist_serialize(keyvaluelist):
 
     return result
 
-def log_graphics(repo, sha , seen):
+def log_graphviz(repo, sha , seen):
     if sha in seen:
         return
     seen.add(sha)
@@ -469,7 +469,7 @@ def log_graphics(repo, sha , seen):
     for parent in parents:
         parent = parent.decode("ascii")
         print(" c_{0} -> c_{1};".format(sha, parent))
-        log_graphics(repo, parent, seen)
+        log_graphviz(repo, parent, seen)
 
 def tree_parse_one(raw, start=0):
 
@@ -786,9 +786,9 @@ def check_ignore_scoped(rules, path):
             result = check_ignore1(rules[parent], path)
             if result != None:
                 return result
-            if parent == "":
-                break
-            parent = os.path.dirname(parent)
+        if parent == "":
+            break
+        parent = os.path.dirname(parent)
     return None
 
 def check_ignore_absolute(rules, path):
@@ -804,6 +804,7 @@ def check_ignore(rules, path):
         raise Exception("This function requires path to be relative to the repository's root")
 
     result = check_ignore_scoped(rules.scoped, path)
+
     if result != None:
         return result
 
@@ -1073,11 +1074,11 @@ def rgit_hash_object(args):
         print(sha)
 
 def rgit_log(args):
-    repo_find_root()
+    repo = repo_find_root()
 
-    print("digraph rgit-log{")
+    print("digraph rgitlog{")
     print("  node[shape=rect]")
-    log_graphics(repo, object_find(repo, args.commit), set())
+    log_graphviz(repo, object_find(repo, args.commit), set())
     print("}")
 
 def rgit_ls_tree(args):
