@@ -474,7 +474,7 @@ def log_graphviz(repo, sha , seen):
 def tree_parse_one(raw, start=0):
 
     x = raw.find(b' ', start)
-    assert x-start == 5 or x-start==6
+    assert x-start == 5 or x-start==6 or x-start == 7
 
     mode = raw[start:x]
     if len(mode) == 5:
@@ -598,10 +598,10 @@ def show_ref(repo, refs, with_hash=True, prefix=""):
         else:
             show_ref(repo, value, with_hash=with_hash, prefix="{0}{1}{2}".format(prefix, "/" if prefix else "", key))
 
-def tag_create(repo, name, ref, create_tag_object=False):
-    sha = object_find(repo_ref)
+def tag_create(repo, name, ref, type):
+    sha = object_find(repo, ref)
 
-    if create_tag_object:
+    if type == "object":
         tag = GitTag(repo)
         tag.keyvaluelist = collections.OrderedDict()
         tag.keyvaluelist[b'object'] = sha.encode()
@@ -1113,7 +1113,10 @@ def rgit_tag(args):
     repo = repo_find_root()
 
     if args.name:
-        tag_create(repo, args.name, args.object, type="object" if args.create_tag_object else "ref")
+        tag_create(repo, 
+                    args.name, 
+                    args.object, 
+                    type="object" if args.create_tag_object else "ref")
 
     else:
         refs = ref_list(repo)
